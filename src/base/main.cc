@@ -1,0 +1,121 @@
+/*  This file is part of Conan.
+
+    Conan is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Conan is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Ares.  If not, see <http://www.gnu.org/licenses/>. */
+
+#include "system.hh"
+#include <functional>
+
+using namespace System;
+
+#ifdef UNITTEST
+#include "unittest.hh"
+#include "longstring.hh"
+
+namespace Test
+{
+	void command_test(int argc_, char **argv_)
+	{
+		Argv argv = read_arguments(argc_, argv_,
+			Option({0, "h", "help", "false", 
+				"print this help."}),
+			Option({0, "l", "list", "false", 
+				"list available tests."}),
+			Option({0, "n", "no-break", "false",
+				"don't break after the first failed test."}),
+			Option({Option::VALUED | Option::CHECK, "s", "select", "-", 
+				"select a test to run, if '-' is given, all tests "
+				"are run in alphanumerical order."}));
+
+		if (argv.get<bool>("help"))
+		{
+			std::cerr << "Conan - cosmological tool chain - nbody simulation\n"
+				"Copyright Johan Hidding, June 2013 - licence: GPL3.\n\n";
+			argv.print(std::cerr);
+			exit(0);
+		}
+
+		if (argv.get<bool>("list"))
+		{
+			std::cerr << "Conan - cosmological tool chain.\n"
+				"Copyright Johan Hidding, June 2013 - licence: GPL3.\n\n"
+				"available tests:\n";
+
+			for (auto &kv : Unit::instances())
+			{
+				std::cerr << kv.first << std::endl
+					<< Misc::LongString(kv.second->description(), 72,
+							[] () -> std::string { return " | "; })
+					<< std::endl;
+			}
+
+			exit(0);
+		}
+
+		bool should_break = not argv.get<bool>("no-break");
+
+		if (argv["select"] != "-")
+		{
+			run_test(Unit::instances()[argv["select"]]);
+		}
+		else
+		{
+			Unit::all(should_break);
+		}
+	}
+
+	Global<Command> _COMMAND_TEST_("test", command_test);
+}
+
+#endif
+
+void usage(std::string const &cmd)
+{
+	std::cout << "Conan - cosmological tool chain - NBody code.\n"
+		"Copyright Johan Hidding, June 2013 - licence: GPL3.\n\n"
+		"This is a very basic N-body code, using Particle-Mesh "
+		"method.\n\n"
+		"usage: " << cmd << " [command] [args]\n"
+		"where [command] is one of: " << System::join(Global<Command>::items(), ", ") <<
+		"\nto get help on a command: " << cmd << " [command] --help\n";
+
+	exit(0);
+}
+
+int main(int argc, char **argv)
+{
+	if (argc < 2) usage(argv[0]);
+
+	std::string command(argv[1]);
+
+	try {
+		Global<Command>::get(command)(argc - 1, argv + 1);
+		exit(0);
+	}
+
+	catch (char const *msg) {
+		std::cerr << "[error] " << msg << std::endl;
+		usage(argv[0]);
+		exit(-1);
+	}
+
+	catch (std::string const &msg) {
+		std::cerr << "[error] " << msg << std::endl;
+		usage(argv[0]);
+		exit(-1);
+	}
+
+	return 0;
+}
+
+// vim:sw=4:ts=4:tw=72
