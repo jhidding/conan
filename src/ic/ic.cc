@@ -110,8 +110,10 @@ Array<double> Conan::generate_random_field(Header const &C)
 
 	switch (dim)
 	{
+		case 1: return _generate_random_field<1>(C);
 		case 2: return _generate_random_field<2>(C);
 		case 3: return _generate_random_field<3>(C);
+		case 4: return _generate_random_field<4>(C);
 	}
 
 	throw "only 2 and 3 dimensions supported.";
@@ -123,8 +125,10 @@ void Conan::compute_potential(Header const &C, Array<double> data)
 
 	switch (dim)
 	{
+		case 1: _compute_potential<1>(C, data); return;
 		case 2: _compute_potential<2>(C, data); return;
 		case 3: _compute_potential<3>(C, data); return;
+		case 4: _compute_potential<4>(C, data); return;
 	}
 
 	throw "only 2 and 3 dimensions supported.";

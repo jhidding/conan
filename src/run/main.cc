@@ -114,6 +114,10 @@ void cmd_run(int argc, char **argv)
 		case 3: nbody_run<3>(H["id"], 
 				mass_box, force_box, 
 				cosmos, integr, phi); break;
+
+		case 4: nbody_run<4>(H["id"], 
+				mass_box, force_box, 
+				cosmos, integr, phi); break;
 	}
 }
 

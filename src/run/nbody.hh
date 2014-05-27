@@ -124,10 +124,11 @@ namespace Conan
 			{
 				if ((i+1) % 10 == 0)
 				{
+					std::cout << "|"; std::cout.flush();
 					std::ofstream fo(Misc::format(id, ".pos.", (i+1)/10, ".conan"));
 					for (size_t i = 0; i < mbox->size(); ++i)
 					{
-						fo << X[i] << std::endl;
+						fo << X[i] << " " << P[i] << std::endl;
 					}
 					fo.close();
 				}
