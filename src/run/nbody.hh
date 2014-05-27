@@ -7,6 +7,8 @@
 
 namespace Conan
 {
+	enum FILE_FORMAT { FMT_ASCII, FMT_IFRIT, FMT_CONAN };
+
 	using System::BoxMaker;
 
 	template <unsigned R>
@@ -66,14 +68,16 @@ namespace Conan
 		LinearInterpolation<Gradient<R>, R> A;
 
 		std::string 	id;
+		FILE_FORMAT	format;
 
 		public:
 			Gravity(std::string const &id_, BoxPtr<R> mbox_, BoxPtr<R> fbox_, 
-					Array<double> phi_, Cosmology cosmos_):
+					Array<double> phi_, Cosmology cosmos_,
+					FILE_FORMAT format_):
 				mbox(mbox_), fbox(fbox_), phi(phi_), delta(fbox->size()), 
 				cosmos(cosmos_), fft(std::vector<int>(R, fbox->N())), 
 				X(mbox->size()), P(mbox->size()), A_l(fbox, delta),
-				A(fbox, A_l), id(id_)
+				A(fbox, A_l), id(id_), format(format_)
 			{
 				mass = pow(double(fbox->N()) / mbox->N(), R);
 			}
@@ -120,15 +124,68 @@ namespace Conan
 				}
 			}
 
+			void save_ifrit(std::ostream &fo) const
+			{
+				if (R != 3) throw "IFRIT files only support 3D";
+
+				std::vector<uint32_t> N(1, mbox->size());
+				System::write_block_32(fo, N);
+
+				std::vector<float> dim(6, 0.0);
+				for (unsigned k = 0; k < 3; ++k)
+					dim[k+3] = mbox->L();
+				System::write_block_32(fo, dim);
+
+				std::vector<float> data(mbox->size());
+				for (unsigned k = 0; k < 3; ++k)
+				{
+					#pragma omp parallel for
+					for (size_t i = 0; i < mbox->size(); ++i)
+					{
+						data[i] = X[i][k];
+					}
+					System::write_block_32(fo, data);
+				}
+				for (unsigned k = 0; k < 3; ++k)
+				{
+					#pragma omp parallel for
+					for (size_t i = 0; i < mbox->size(); ++i)
+					{
+						data[i] = P[i][k];
+					}
+					System::write_block_32(fo, data);
+				}
+			}
+
 			virtual void save_snapshot(unsigned i) const
 			{
 				if ((i+1) % 10 == 0)
 				{
 					std::cout << "|"; std::cout.flush();
-					std::ofstream fo(Misc::format(id, ".pos.", (i+1)/10, ".conan"));
-					for (size_t i = 0; i < mbox->size(); ++i)
+					std::string fn;
+					switch (format)
 					{
-						fo << X[i] << " " << P[i] << std::endl;
+						case FMT_ASCII: fn = Misc::format(id, ".pos.", (i+1)/10, ".txt");
+								break;
+						case FMT_IFRIT: fn = Misc::format(id, ".pos.", (i+1)/10, ".bin");
+								break;
+						case FMT_CONAN: fn = Misc::format(id, ".pos.", (i+1)/10, ".conan");
+								break;
+					}
+
+					std::ofstream fo(fn);
+					switch (format)
+					{
+						case FMT_ASCII:
+							for (size_t i = 0; i < mbox->size(); ++i)
+							{
+								fo << X[i] << " " << P[i] << std::endl;
+							} break;
+						case FMT_IFRIT: 
+							save_ifrit(fo);
+							break;
+						case FMT_CONAN:
+							break;
 					}
 					fo.close();
 				}
@@ -137,12 +194,13 @@ namespace Conan
 
 	template <unsigned R>
 	void nbody_run(std::string const &id, BoxMaker mass_box_, BoxMaker force_box_,
-		Cosmology cosmos, Integrator const &integr, Array<double> phi)
+		Cosmology cosmos, Integrator const &integr, Array<double> phi, 
+		FILE_FORMAT format = FMT_CONAN)
 	{
 		auto mass_box  =  mass_box_.box<R>(),
 		     force_box = force_box_.box<R>();
 		     
-		ptr<Solver> solver(new Gravity<R>(id, mass_box, force_box, phi, cosmos));
+		ptr<Solver> solver(new Gravity<R>(id, mass_box, force_box, phi, cosmos, format));
 		integr.run(solver);
 	}
 }

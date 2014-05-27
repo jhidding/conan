@@ -48,7 +48,13 @@ void cmd_run(int argc, char **argv)
 			"size of time step."}),
 
 		Option({Option::VALUED | Option::CHECK, "n", "n", "50",
-			"number of iterations."}));
+			"number of iterations."}),
+			
+		Option({0, "", "ifrit", "false",
+			"give output in Ifrit readable format."}),
+
+		Option({0, "", "ascii", "false",
+			"give output in ASCII (not recommended for 3D)."}));
 
 	if (C.get<bool>("help"))
 	{
@@ -99,7 +105,11 @@ void cmd_run(int argc, char **argv)
 		da = H.get<double>("da"),
 		n  = H.get<double>("n");
 
-	LeapFrog   integr(a0, da, n);
+	LeapFrog    integr(a0, da, n);
+	FILE_FORMAT format = FMT_CONAN;
+
+	if (H.get<bool>("ifrit")) format = FMT_IFRIT;
+	if (H.get<bool>("ascii")) format = FMT_ASCII;
 
 	switch (H.get<int>("dim"))
 	{
@@ -113,7 +123,7 @@ void cmd_run(int argc, char **argv)
 
 		case 3: nbody_run<3>(H["id"], 
 				mass_box, force_box, 
-				cosmos, integr, phi); break;
+				cosmos, integr, phi, format); break;
 
 		case 4: nbody_run<4>(H["id"], 
 				mass_box, force_box, 

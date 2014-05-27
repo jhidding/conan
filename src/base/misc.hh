@@ -55,6 +55,15 @@ namespace System
 		f.write(reinterpret_cast<char *>(&byte_size), sizeof(uint64_t));
 	}
 
+	template <typename T>
+	void write_block_32(std::ostream &f, std::vector<T> const &v)
+	{
+		uint32_t byte_size = v.size() * sizeof(T);
+		f.write(reinterpret_cast<char *>(&byte_size), sizeof(uint32_t));
+		f.write(reinterpret_cast<char const *>(v.data()), byte_size);
+		f.write(reinterpret_cast<char *>(&byte_size), sizeof(uint32_t));
+	}
+
 	inline void skip_block(std::istream &f)
 	{
 		uint64_t bs1, bs2;
