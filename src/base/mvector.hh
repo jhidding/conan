@@ -157,6 +157,22 @@ namespace System
 			{
 				return std::inner_product(begin(), end(), o.begin(), T(0));
 			}
+
+			mVector floor() const
+			{
+				mVector a;
+				for (unsigned k = 0; k < R; ++k)
+					a[k] = round_down(p[k]);
+				return a;
+			}
+
+			mVector ceil() const
+			{
+				mVector a;
+				for (unsigned k = 0; k < R; ++k)
+					a[k] = round_up(p[k]);
+				return a;
+			}
 	};
 
 	template <typename T, unsigned R>

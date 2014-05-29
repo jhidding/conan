@@ -158,6 +158,13 @@ namespace System
 			S *= N;
 		return S;
 	}
+
+	inline double round_up(double a)
+	{ return (a < 0.0 ? int(a) : int(a) + 1); }
+
+	inline double round_down(double a)
+	{ return (a < 0.0 ? int(a) - 1: int(a)); }
+
 	// }}}2
 
 	// product {{{2

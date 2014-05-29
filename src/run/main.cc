@@ -49,6 +49,9 @@ void cmd_run(int argc, char **argv)
 
 		Option({Option::VALUED | Option::CHECK, "n", "n", "50",
 			"number of iterations."}),
+
+		Option({0, "", "flip-flops", "false",
+			"count number of flip-flops for each particle."}),
 			
 		Option({0, "", "ifrit", "false",
 			"give output in Ifrit readable format."}),
@@ -111,23 +114,25 @@ void cmd_run(int argc, char **argv)
 	if (H.get<bool>("ifrit")) format = FMT_IFRIT;
 	if (H.get<bool>("ascii")) format = FMT_ASCII;
 
+	bool flip_flops = H.get<bool>("flip-flops");
+
 	switch (H.get<int>("dim"))
 	{
 		case 1: nbody_run<1>(H["id"], 
 				mass_box, force_box, 
-				cosmos, integr, phi, format); break;
+				cosmos, integr, phi, format, flip_flops); break;
 
 		case 2: nbody_run<2>(H["id"], 
 				mass_box, force_box, 
-				cosmos, integr, phi, format); break;
+				cosmos, integr, phi, format, flip_flops); break;
 
 		case 3: nbody_run<3>(H["id"], 
 				mass_box, force_box, 
-				cosmos, integr, phi, format); break;
+				cosmos, integr, phi, format, flip_flops); break;
 
 		case 4: nbody_run<4>(H["id"], 
 				mass_box, force_box, 
-				cosmos, integr, phi, format); break;
+				cosmos, integr, phi, format, flip_flops); break;
 	}
 }
 

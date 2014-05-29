@@ -58,6 +58,8 @@ namespace Conan
 		BoxPtr<R>	mbox, fbox;
 		double		mass;
 		Array<double> 	phi, delta;
+		bool            ff;
+		Array<unsigned> flips;
 		Cosmology	cosmos;
 
 		Fourier::Transform fft;
@@ -72,9 +74,10 @@ namespace Conan
 
 		public:
 			Gravity(std::string const &id_, BoxPtr<R> mbox_, BoxPtr<R> fbox_, 
-					Array<double> phi_, Cosmology cosmos_,
+					Array<double> phi_, Cosmology cosmos_, bool ff_,
 					FILE_FORMAT format_):
-				mbox(mbox_), fbox(fbox_), phi(phi_), delta(fbox->size()), 
+				mbox(mbox_), fbox(fbox_), phi(phi_), delta(fbox->size()),
+			       	ff(ff_), flips(ff ? mbox->size() : 0),
 				cosmos(cosmos_), fft(std::vector<int>(R, fbox->N())), 
 				X(mbox->size()), P(mbox->size()), A_l(fbox, delta),
 				A(fbox, A_l), id(id_), format(format_)
@@ -195,12 +198,12 @@ namespace Conan
 	template <unsigned R>
 	void nbody_run(std::string const &id, BoxMaker mass_box_, BoxMaker force_box_,
 		Cosmology cosmos, Integrator const &integr, Array<double> phi, 
-		FILE_FORMAT format = FMT_CONAN)
+		FILE_FORMAT format = FMT_CONAN, bool ff = false)
 	{
 		auto mass_box  =  mass_box_.box<R>(),
 		     force_box = force_box_.box<R>();
 		     
-		ptr<Solver> solver(new Gravity<R>(id, mass_box, force_box, phi, cosmos, format));
+		ptr<Solver> solver(new Gravity<R>(id, mass_box, force_box, phi, cosmos, ff, format));
 		integr.run(solver);
 	}
 }
