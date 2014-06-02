@@ -299,6 +299,15 @@ namespace System
 	Tail<T> tail(T const &a) { return Tail<T>(a); }
 	// }}}1
 
+	template <typename A>
+	typename A::value_type sum(A const &a)
+	{
+		typename A::value_type result(head(a))
+		for (auto const &element : tail(a))
+			result += element;
+		return result;
+	}
+
 	template <typename R>
 	std::string join(R const &r, std::string const &d)
 	{

@@ -35,6 +35,7 @@ namespace System
 		public:
 			Fourier::KSpace<R> const K;
 			GridSpace<R>	   const G;
+			MdRange<R>	   const I;
 			std::vector<mVector<int, R>> block;
 			std::vector<mVector<int, R>> dx;
 
@@ -44,6 +45,7 @@ namespace System
 				mSize(ipow(N_, R)),
 				K(Fourier::kspace<R>(N_, L_)),
 				G(grid_space<R>(N_, L_)),
+				I(mVector<int, R>(N_)),
 				block(1 << R, 0), dx(R, 0)
 			{
 				mStride[0] = 1;

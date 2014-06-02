@@ -37,7 +37,7 @@ namespace Conan
 		static Decom_data_2 const dd_even;
 		Decom_data_2 const &D;
 
-		dVector<R> const *d;
+		Array<dVector<R>> d;
 		double d_cell_volume[2];
 
 		public:
@@ -49,13 +49,17 @@ namespace Conan
 			double cell_unit_volume(uint8_t n) const { return D.C[n].unit_volume; }
 			double cell_volume(uint8_t n) const { return d_cell_volume[n]; }
 
-			Cell_iterator<2> cells_begin() const { return Cell_iterator<2>(*this, 0); }
-			Cell_iterator<2> cells_end() const { return Cell_iterator<2>(*this, 2); }
-
-			Decomposition(int parity, dVector<2> const *d_):
-				D(parity == -1 ? dd_odd : dd_even)
+			double total_volume() const 
 			{
-				d = d_;
+				return d_cell_volume[0] + d_cell_volume[1];
+			}
+
+			Cell_iterator<2> begin() const { return Cell_iterator<2>(*this, 0); }
+			Cell_iterator<2> end() const { return Cell_iterator<2>(*this, 2); }
+
+			Decomposition(bool parity, Array<dVector<2>> d_):
+				D(parity ? dd_odd : dd_even), d(d_)
+			{
 				d_cell_volume[0] = fabs(calc_volume(D.C[0].vertices));
 				d_cell_volume[1] = fabs(calc_volume(D.C[1].vertices));
 			}
@@ -75,7 +79,7 @@ namespace Conan
 		static Decom_data_3 const dd_even; 
 		Decom_data_3 const &D;
 
-		dVector<3> const *d;
+		Array<dVector<3>> d;
 		double d_cell_volume[5];
 
 		dVector<3> d_normals[16];
@@ -88,17 +92,24 @@ namespace Conan
 			bool cell_contains(uint8_t c, dVector<3> const &p) const;
 			double cell_unit_volume(uint8_t n) const { return D.C[n].unit_volume; }
 			double cell_volume(uint8_t n) const { return d_cell_volume[n]; }
+			double total_volume() const 
+			{
+				double v = 0.0;
+				for (unsigned i = 0; i < 5; ++i)
+					v += d_cell_volume[i];
+				return v;
+			}
+
 			Vec const &cell_face(uint8_t n, uint8_t i) const { return D.F[D.C[n].faces[i]].vertices; }
 
 			dVector<3> face_normal(Vec const &v) const;
 
-			Cell_iterator<3> cells_begin() const { return Cell_iterator<3>(*this, 0); }
-			Cell_iterator<3> cells_end() const { return Cell_iterator<3>(*this, 5); }
+			Cell_iterator<3> begin() const { return Cell_iterator<3>(*this, 0); }
+			Cell_iterator<3> end() const { return Cell_iterator<3>(*this, 5); }
 
-			Decomposition(int parity, dVector<3> const *d_):
-				D(parity == -1 ? dd_odd : dd_even)
+			Decomposition(bool parity, Array<dVector<3>> d_):
+				D(parity ? dd_odd : dd_even), d(d_)
 			{
-				d = d_;
 				for (uint8_t i = 0; i < 5; ++i)
 				{
 					d_cell_volume[i] = fabs(calc_volume(D.C[i].vertices));
