@@ -302,7 +302,7 @@ namespace System
 	template <typename A>
 	typename A::value_type sum(A const &a)
 	{
-		typename A::value_type result(head(a))
+		typename A::value_type result(head(a));
 		for (auto const &element : tail(a))
 			result += element;
 		return result;

@@ -71,6 +71,7 @@ namespace Conan
 
 		std::string 	id;
 		FILE_FORMAT	format;
+		double		last_apos, last_avel;
 
 		public:
 			Gravity(std::string const &id_, BoxPtr<R> mbox_, BoxPtr<R> fbox_, 
@@ -80,7 +81,8 @@ namespace Conan
 			       	ff(ff_), flips(ff ? mbox->size() : 0),
 				cosmos(cosmos_), fft(std::vector<int>(R, fbox->N())), 
 				X(mbox->size()), P(mbox->size()), A_l(fbox, delta),
-				A(fbox, A_l), id(id_), format(format_)
+				A(fbox, A_l), id(id_), format(format_), last_apos(0.0),
+				last_avel(0.0)
 			{
 				mass = pow(double(fbox->N()) / mbox->N(), R);
 			}
@@ -91,6 +93,7 @@ namespace Conan
 				ZA.x(X, a_pos);
 				ZA.p(P, a_mom);
 				phi->resize(fbox->size());
+				last_apos = a_pos; last_avel = a_mom;
 			}
 
 			virtual void kick(double a, double da)
@@ -114,6 +117,8 @@ namespace Conan
 				{
 					P[i] -= A(X[i]) * (da / adot);
 				}
+
+				last_avel = a;
 			}
 
 			virtual void drift(double a, double da)
@@ -125,6 +130,8 @@ namespace Conan
 				{
 					X[i] += P[i] * (da / (a * a * adot));
 				}
+
+				last_apos = a;
 			}
 
 			void save_ifrit(std::ostream &fo) const
@@ -160,6 +167,22 @@ namespace Conan
 				}
 			}
 
+			void save_conan(std::ostream &fo) const
+			{
+				System::Header H; H["id"] = id;
+				H["N"] = Misc::format(mbox->N());
+				H["L"] = Misc::format(mbox->L());
+				H["a-mom"] = Misc::format(last_avel);
+				H["a-pos"] = Misc::format(last_apos);
+
+				System::History I; I.update("ran nbody");
+
+				H.to_file(fo);
+				I.to_file(fo);
+				System::save_to_file(fo, X, "pos");
+				System::save_to_file(fo, P, "mom");
+			}
+
 			virtual void save_snapshot(unsigned i) const
 			{
 				if ((i+1) % 10 == 0)
@@ -188,6 +211,7 @@ namespace Conan
 							save_ifrit(fo);
 							break;
 						case FMT_CONAN:
+							save_conan(fo);
 							break;
 					}
 					fo.close();
