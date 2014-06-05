@@ -3,7 +3,7 @@
 #include <vector>
 #include <omp.h>
 
-using namespace Fourier;
+using namespace Conan;
 
 Transform::Transform(std::vector<int> const &shape):
 	size(System::product(shape)), in(size), out(size)

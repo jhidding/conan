@@ -11,7 +11,7 @@
 #include "mdrange.hh"
 #include "map.hh"
 
-namespace Fourier
+namespace Conan
 {
 	typedef std::complex<double> complex64;
 	extern complex64 math_i;

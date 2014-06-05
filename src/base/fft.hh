@@ -13,7 +13,7 @@
 #include <iterator>
 #include <memory>
 
-namespace Fourier
+namespace Conan
 {
 	template <typename T>
 	class FFT_allocator: public std::allocator<T>

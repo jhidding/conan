@@ -19,7 +19,7 @@ void cmd_ic(int argc, char **argv)
 		Option({Option::VALUED | Option::CHECK, "i", "id", date_string(),
 			"identifier for filenames."}),
 
-		Option({Option::VALUED | Option::CHECK, "d", "dim", "2",
+		Option({Option::VALUED | Option::CHECK, "d", "dim", "3",
 			"number of dimensions in which to run the code. "
 			"Usually this should by 2 or 3."}),
 
@@ -35,17 +35,27 @@ void cmd_ic(int argc, char **argv)
 			"random seed used to generate the initial conditions. "
 			"By default the number of seconds since Epoch is used. "}),
 
-		Option({Option::VALUED | Option::CHECK, "n", "power-slope", "-1.0",
+		Option({Option::VALUED | Option::CHECK, "", "Omega0", "0.32",
+			"matter density."}),
+
+		Option({Option::VALUED | Option::CHECK, "", "H0", "69.0",
+			"Hubble parameter."}),
+
+		Option({Option::VALUED | Option::CHECK, "n", "ns", "0.96",
 			"the slope of the power spectrum."}),
 
 		Option({0, "", "smooth", "false",
 			"whether to smooth the initial conditions with a Gaussian "
 			"filter or not."}),
 
+		Option({0, "", "scale-free", "false",
+			"this will enable a scale-free power-spectrum with "
+			"power law index <ns>."}),
+
 		Option({Option::VALUED | Option::CHECK, "", "scale", "8.0",
 			"scale at which to smooth in units of Mpc/h."}),
 
-		Option({Option::VALUED | Option::CHECK, "", "sigma", "1.0",
+		Option({Option::VALUED | Option::CHECK, "", "sigma", "0.83",
 			"normalisation at given scale."}),
 		
 		Option(0, "p", "potential", "false",
