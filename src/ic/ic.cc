@@ -45,7 +45,8 @@ Array<double> _generate_random_field(Header const &C)
 	double       norm = C.get<double>("sigma");
 	unsigned     seed = C.get<unsigned>("seed");
 
-	size_t N = size_t(1) << mbits;
+	size_t 		N = size_t(1) << mbits;
+	double        res = L/N;
 
 	mVector<int, R> shape(N);
 	size_t size = product(shape);
@@ -90,7 +91,7 @@ Array<double> _generate_random_field(Header const &C)
 		fft.in[0] = 0;
 		fft.backward();
 		copy(dens, fft.in);
-		transform(fft.out, dens, real_part(size));
+		transform(fft.out, dens, real_part(size * pow(res, 0.5*R)));
 
 		return dens;
 	}
