@@ -10,7 +10,7 @@ namespace Misc
 		using iVector = System::mVector<int, R>;
 
 		System::ptr<System::BoxConfig<R>> 	box;
-		Q									f;
+		Q					f;
 
 		public:
 			Interpolate(System::ptr<System::BoxConfig<R>> box_, Q f_):
