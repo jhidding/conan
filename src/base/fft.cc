@@ -1,12 +1,19 @@
 #include "fft.hh"
-#include "misc.hh"
 #include <vector>
 #include <omp.h>
 
-using namespace Conan;
+using namespace Fourier;
+
+template <typename T>
+inline typename T::value_type _product(T a)
+{
+	typename T::value_type v = 1;
+	for (auto x : a) v *= x;
+	return v;
+}
 
 Transform::Transform(std::vector<int> const &shape):
-	size(System::product(shape)), in(size), out(size)
+	size(_product(shape)), in(size), out(size)
 {
 	std::vector<int> ishape(shape.begin(), shape.end());
 	fftw_init_threads();

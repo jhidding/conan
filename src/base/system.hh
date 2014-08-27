@@ -12,6 +12,7 @@
 #include "date.hh"
 #include "cvector.hh"
 #include "box.hh"
+#include "maybe.hh"
 
 namespace System
 {

@@ -11,10 +11,13 @@
 #include "mdrange.hh"
 #include "map.hh"
 
-namespace Conan
+namespace Fourier
 {
 	typedef std::complex<double> complex64;
 	extern complex64 math_i;
+
+	template <unsigned R>
+	using dVector = System::mVector<double, R>;
 
 	inline std::function<double (size_t)> wave_number(size_t N, double L)
 	{
@@ -51,76 +54,78 @@ namespace Conan
 		});
 	}
 
+	typedef std::function<double (double)> RealFunction;
+
 	template <unsigned R>
-	class Fourier
+	using FilterBase = std::function<complex64 (dVector<R> const &)>;
+
+	template <unsigned R>
+	class Filter: public FilterBase<R>
 	{
 		public:
-			typedef System::mVector<double, R> Vector;
-			typedef std::function<double (double)> RealFunction;
+			Filter(FilterBase<R> const &f):
+				FilterBase<R>(f) {}
 
-			typedef std::function<complex64 (Vector const &)> FilterBase;
-			class Filter: public FilterBase
+			Filter operator*(Filter const &o) const
 			{
-				public:
-					Filter(FilterBase const &f):
-						FilterBase(f) {}
-
-					Filter operator*(Filter const &o) const
-					{
-						Filter p(*this);
-						return Filter([p, o] (Fourier<R>::Vector const &K)
-						{
-							return p(K) * o(K);
-						});
-					}
-			};
-
-			static inline Filter scale(double t)
-			{
-				return Filter([t] (Vector const &K)
+				Filter p(*this);
+				return Filter([p, o] (dVector<R> const &K)
 				{
-					double v = 1.0;
-					for (auto k : K)
-					{
-						v *= exp(t * (cos(k) - 1));
-					}
-					return complex64(v);
+					return p(K) * o(K);
 				});
-			}
-
-			static inline Filter power_spectrum(RealFunction const &P)
-			{
-				return Filter([P] (Vector const &K)
-				{
-					return complex64(sqrt(P(K.norm())));
-				});
-			}
-
-			static inline Filter potential()
-			{
-				return Filter([] (Vector const &K)
-				{
-					return complex64(-1. / K.sqr());
-				});
-			}
-
-			static inline Filter derivative(unsigned i)
-			{
-				return Filter([i] (Vector const &K)
-				{
-					return math_i * sin(K[i]);
-				});
-			}
-
-			static inline std::function<complex64 (complex64, Vector const &)>
-			filter(Filter const &f)
-			{
-				return [f] (complex64 z, Vector const &K)
-				{
-					return z * f(K);
-				};
-			}
+			}	
 	};
+
+	template <unsigned R>
+	inline Filter<R> scale(double t)
+	{
+		return Filter<R>([t] (dVector<R> const &K)
+		{
+			double v = 1.0;
+			for (auto k : K)
+			{
+				v *= exp(t * (cos(k) - 1));
+			}
+			return complex64(v);
+		});
+	}
+
+	template <unsigned R>
+	inline Filter<R> power_spectrum(RealFunction const &P)
+	{
+		return Filter<R>([P] (dVector<R> const &K)
+		{
+			return complex64(sqrt(P(K.norm())));
+		});
+	}
+
+	template <unsigned R>
+	inline Filter<R> potential()
+	{
+		return Filter<R>([] (dVector<R> const &K)
+		{
+			return complex64(-1. / K.sqr());
+		});
+	}
+
+	template <unsigned R>
+	inline Filter<R> derivative(unsigned i)
+	{
+		return Filter<R>([i] (dVector<R> const &K)
+		{
+			return math_i * sin(K[i]);
+		});
+	}
+
+	template <unsigned R>
+	inline std::function<complex64 (complex64, dVector<R> const &)>
+	filter(Filter<R> const &f)
+	{
+		return [f] (complex64 z, dVector<R> const &K)
+		{
+			return z * f(K);
+		};
+	}
 }
 
 // vim:ts=4:sw=4:tw=80

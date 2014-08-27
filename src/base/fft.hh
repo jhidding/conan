@@ -13,7 +13,7 @@
 #include <iterator>
 #include <memory>
 
-namespace Conan
+namespace Fourier
 {
 	template <typename T>
 	class FFT_allocator: public std::allocator<T>
@@ -47,7 +47,8 @@ namespace Conan
 		fftw_plan		d_plan_fwd, d_plan_bwd;
 
 		public:
-			std::vector<std::complex<double>, FFT_allocator<std::complex<double>>> in, out;
+			std::vector<std::complex<double>, FFT_allocator<std::complex<double>>> 
+				in, out;
 
 			Transform(std::vector<int> const &);
 			~Transform();

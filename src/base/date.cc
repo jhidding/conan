@@ -31,20 +31,20 @@ string System::seconds_since_epoch_string()
 	return ss.str();
 }
 
-std::string System::timed_filename(std::string const &id, std::string const &stage, float b)
+std::string System::timed_filename(std::string const &id, std::string const &stage, float b, std::string const &ext)
 {
 	ostringstream s;
 
 	if (b < 0.0)
 	{
 		s 	<< id << "." << stage << "." << "init" 
-			<< ".conan";
+			<< ext;
 	}
 	else
 	{
 		s 	<< id << "." << stage << "." << setfill('0') << setw(5)
 			<< static_cast<int>(round(b * 10000)) 
-			<< ".conan";
+			<< ext;
 	}
 	return s.str();
 }

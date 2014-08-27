@@ -62,7 +62,7 @@ namespace Conan
 		Array<unsigned> flips;
 		Cosmology	cosmos;
 
-		Conan::Transform fft;
+		Fourier::Transform fft;
 
 		Array<dVector<R>> X, P;
 		Gradient<R>       A_l;
@@ -105,11 +105,11 @@ namespace Conan
 				transform(delta, fft.in, [] (double f)
 					{ return f - 1.0; });
 				fft.forward();
-				p_transform(fft.out, fbox->K, fft.in, Conan::Fourier<R>::filter(
-					Conan::Fourier<R>::potential()));
+				p_transform(fft.out, fbox->K, fft.in, Fourier::filter<R>(
+					Fourier::potential<R>()));
 				fft.in[0] = 0;
 				fft.backward();
-				p_transform(fft.out, delta, Conan::real_part(fbox->size() / cosmos.G() * a));
+				p_transform(fft.out, delta, Fourier::real_part(fbox->size() / cosmos.G() * a));
 
 				double adot = cosmos(a);
 				#pragma omp parallel for

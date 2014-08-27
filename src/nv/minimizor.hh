@@ -13,7 +13,7 @@ namespace Conan
 		{
 			T *F = reinterpret_cast<T *>(pars);
 
-			mVector<double, rank> A;
+			dVector<rank> A;
 			for (unsigned i = 0; i < rank; ++i)
 				A[i] = gsl_vector_get(x, i);
 
@@ -25,7 +25,7 @@ namespace Conan
 		{
 			T *F = reinterpret_cast<T *>(pars);
 
-			mVector<double, rank> A;
+			dVector<rank> A;
 			for (unsigned i = 0; i < rank; ++i)
 				A[i] = gsl_vector_get(x, i);
 
@@ -37,12 +37,13 @@ namespace Conan
 		{
 			T *F = reinterpret_cast<T *>(pars);
 
-			mVector<double, rank> A;
+			dVector<rank> A;
 			for (unsigned i = 0; i < rank; ++i)
 				A[i] = gsl_vector_get(x, i);
 
+			auto result = F->df(A);
 			for (unsigned i = 0; i < rank; ++i)
-				gsl_vector_set(g, i, F->df(i, A));
+				gsl_vector_set(g, i, result[i]);
 		}
 
 		template <typename T, int rank>
@@ -50,14 +51,16 @@ namespace Conan
 		{
 			T *F = reinterpret_cast<T *>(pars);
 
-			mVector<double, rank> A;
+			dVector<rank> A;
 			for (unsigned i = 0; i < rank; ++i)
 				A[i] = gsl_vector_get(x, i);
 
-			for (unsigned i = 0; i < rank; ++i)
-				gsl_vector_set(g, i, F->df(i, A));
+			auto result = F->fdf(A);
 
-			*v = F->f(A);
+			for (unsigned i = 0; i < rank; ++i)
+				gsl_vector_set(g, i, result.second[i]);
+
+			*v = result.first;
 		}
 	}
 
@@ -106,10 +109,8 @@ namespace Conan
 				x = gsl_vector_alloc(rank);
 			}
 
-			void set(mVector<double, rank> const &X, mVector<double, rank> const &Q)
+			void set(dVector<rank> const &Q)
 			{
-				fctor.set(X);
-
 				for (unsigned i = 0; i < rank; ++i)
 				{
 					gsl_vector_set(x, i, Q[i]);
@@ -129,12 +130,12 @@ namespace Conan
 					min->gradient, 1e-4) != GSL_SUCCESS;
 			}
 
-			mVector<double, rank> pos()
+			dVector<rank> pos()
 			{
 				gsl_vector *y;
 				y = gsl_multimin_fdfminimizer_x(min);
 
-				mVector<double, rank> A;
+				dVector<rank> A;
 				for (unsigned i = 0; i < rank; ++i)
 					A[i] = gsl_vector_get(y, i);
 
@@ -156,12 +157,15 @@ namespace Conan
 		gsl_vector	*step_size;
 		gsl_vector	*x;
 
+		T		fctr;
+
 		public:
-			Minimizor(T *functor)
+			Minimizor(T functor):
+				fctr(functor)
 			{
 				fn.f = &_Minimizor::functorTerm<T, rank>;
 				fn.n = rank;
-				fn.params = reinterpret_cast<void *>(functor);
+				fn.params = reinterpret_cast<void *>(&fctr);
 
 				const gsl_multimin_fminimizer_type *mint = gsl_multimin_fminimizer_nmsimplex;
 
@@ -170,12 +174,12 @@ namespace Conan
 				step_size = gsl_vector_alloc(rank);
 			}
 
-			void set(mVector<double, rank> const &A)
+			void set(dVector<rank> const &A)
 			{
 				for (unsigned i = 0; i < rank; ++i)
 				{
 					gsl_vector_set(x, i, A[i]);
-					gsl_vector_set(step_size, i, 1.0);
+					gsl_vector_set(step_size, i, 0.1);
 				}
 
 				gsl_multimin_fminimizer_set(min, &fn, x, step_size);
@@ -186,12 +190,12 @@ namespace Conan
 				gsl_multimin_fminimizer_iterate(min);
 			}
 
-			mVector<double, rank> pos()
+			dVector<rank> pos()
 			{
 				gsl_vector *y;
 				y = gsl_multimin_fminimizer_x(min);
 
-				mVector<double, rank> A;
+				dVector<rank> A;
 				for (unsigned i = 0; i < rank; ++i)
 					A[i] = gsl_vector_get(y, i);
 

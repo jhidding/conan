@@ -1,9 +1,7 @@
 #include "../base/system.hh"
 #include "../base/format.hh"
 
-#include "cosmology.hh"
-#include "leapfrog.hh"
-#include "nbody.hh"
+#include "nv.hh"
 
 #include <fstream>
 
@@ -31,7 +29,10 @@ void cmd_nv(int argc, char **argv)
 			"growing-mode solution."}),
 
 		Option({0, "", "ascii", "false",
-			"give output in ASCII (not recommended for 3D)."}));
+			"give output in ASCII (not recommended for 3D)."}),
+		
+		Option({0, "", "no-enh", "false",
+			"do not enhance on sub-grid scale."}));
 
 	if (C.get<bool>("help"))
 	{
@@ -55,6 +56,8 @@ void cmd_nv(int argc, char **argv)
 	unsigned f = H.get<unsigned>("f"),
 		 N = H.get<unsigned>("N");
 	double   L = H.get<double>("size");
+	double   D = H.get<double>("growing-mode");
+	bool     enhance = not H.get<bool>("no-enh");
 
 	BoxMaker mass_box(N, L),
 		 force_box(f*N, L);
@@ -66,15 +69,15 @@ void cmd_nv(int argc, char **argv)
 	{
 		case 1: nv_run<1>(H["id"], 
 				mass_box, force_box, 
-				phi, format); break;
+				phi, D, format, enhance); break;
 
 		case 2: nv_run<2>(H["id"], 
 				mass_box, force_box, 
-				phi, format); break;
+				phi, D, format, enhance); break;
 
 		case 3: nv_run<3>(H["id"], 
 				mass_box, force_box, 
-				phi, format); break;
+				phi, D, format, enhance); break;
 	}
 }
 

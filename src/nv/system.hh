@@ -5,6 +5,10 @@
 
 namespace Conan
 {
+	using System::Maybe;
+	using System::Just;
+	using System::Nothing;
+
 	template <unsigned R>
 	using BoxPtr = System::ptr<System::Box<R>>;
 
@@ -16,7 +20,9 @@ namespace Conan
 
 	using System::Array;
 	using System::ptr;
+	using System::make_ptr;
 	using System::BoxMaker;
+	using System::MdRange;
 
 	enum FILE_FORMAT { FMT_ASCII, FMT_IFRIT, FMT_CONAN };
 

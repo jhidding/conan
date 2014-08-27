@@ -12,7 +12,7 @@ typename A::value_type mean(A const &a)
 }
 
 template <unsigned R>
-typename Fourier<R>::Filter CDM(Header const &H)
+typename Fourier::Filter<R> CDM(Header const &H)
 {
 	double const 
 		e 		= exp(1),
@@ -22,7 +22,7 @@ typename Fourier<R>::Filter CDM(Header const &H)
 		ns		= H.get<double>("ns"),
 		A		= 1122670;
 
-	return Fourier<R>::power_spectrum(
+	return Fourier::power_spectrum<R>(
 		[=] (double k)
 	{
 		double  q  = k * pow(Theta_CMB, 2)/(Omega0 * h),
@@ -50,7 +50,7 @@ Array<double> _generate_random_field(Header const &C)
 
 	mVector<int, R> shape(N);
 	size_t size = product(shape);
-	Transform fft(std::vector<int>(R, N));
+	Fourier::Transform fft(std::vector<int>(R, N));
 
 	Array<double> dens(size);
 	generate(dens, Gaussian_white_noise(seed));
@@ -58,40 +58,40 @@ Array<double> _generate_random_field(Header const &C)
 
 	if (C.get<bool>("scale-free"))
 	{
-		auto P = Fourier<R>::power_spectrum(
+		auto P = Fourier::power_spectrum<R>(
 			[slope] (double k) { return pow(k, slope); });
-		auto S = Fourier<R>::scale(sigma * N/L);
-		auto K = kspace<R>(N, N);
+		auto S = Fourier::scale<R>(sigma * N/L);
+		auto K = Fourier::kspace<R>(N, N);
 
 		fft.forward();
-		transform(fft.out, K, fft.in, Fourier<R>::filter(P * S));
+		transform(fft.out, K, fft.in, Fourier::filter<R>(P * S));
 		fft.in[0] = 0;
 		fft.backward();
 		copy(dens, fft.in);
-		transform(fft.out, dens, real_part(size));
+		transform(fft.out, dens, Fourier::real_part(size));
 
 		double var = mean(map(dens, [] (double a) { return a*a; }));
 
 		fft.forward();
-		transform(fft.out, K, fft.in, Fourier<R>::filter((smooth ? P * S : P)));
+		transform(fft.out, K, fft.in, Fourier::filter<R>((smooth ? P * S : P)));
 
 		fft.in[0] = 0;
 		fft.backward();
-		transform(fft.out, dens, real_part(size * sqrt(var) / norm));
+		transform(fft.out, dens, Fourier::real_part(size * sqrt(var) / norm));
 		
 		return dens;
 	}
 	else
 	{
-		auto K = kspace<R>(N, L);
+		auto K = Fourier::kspace<R>(N, L);
 		auto P = CDM<R>(C);
 		fft.forward();
 		
-		transform(fft.out, K, fft.in, Fourier<R>::filter(P));
+		transform(fft.out, K, fft.in, Fourier::filter<R>(P));
 		fft.in[0] = 0;
 		fft.backward();
 		copy(dens, fft.in);
-		transform(fft.out, dens, real_part(size * pow(res, 0.5*R)));
+		transform(fft.out, dens, Fourier::real_part(size * pow(res, 0.5*R)));
 
 		return dens;
 	}
@@ -105,15 +105,15 @@ void _compute_potential(Header const &C, Array<double> density)
 	unsigned N = 1 << mbits;
 	size_t size = 1U << (mbits * R);
 
-	Conan::Transform fft(std::vector<int>(R, N));
-	auto K = kspace<R>(N, L);
-	auto F = Fourier<R>::potential();
+	Fourier::Transform fft(std::vector<int>(R, N));
+	auto K = Fourier::kspace<R>(N, L);
+	auto F = Fourier::potential<R>();
 	copy(density, fft.in);
 	fft.forward();
-	transform(fft.out, K, fft.in, Fourier<R>::filter(F));
+	transform(fft.out, K, fft.in, Fourier::filter<R>(F));
 	fft.in[0] = 0;
 	fft.backward();
-	transform(fft.out, density, real_part(size));
+	transform(fft.out, density, Fourier::real_part(size));
 }
 
 template <unsigned R>
@@ -125,8 +125,8 @@ Array<mVector<double, R>> _compute_displacement(Header const &C, Array<double> p
 	size_t size = 1U << (mbits * R);
 
 	Array<complex64> phi_f(size);
-	Transform fft(std::vector<int>(R, N));
-	auto K = kspace<R>(N, N);
+	Fourier::Transform fft(std::vector<int>(R, N));
+	auto K = Fourier::kspace<R>(N, N);
 	copy(potential, fft.in);
 	fft.forward();
 	copy(fft.out, phi_f);
@@ -134,13 +134,13 @@ Array<mVector<double, R>> _compute_displacement(Header const &C, Array<double> p
 	Array<mVector<double, R>> psi(size);
 	for (unsigned k = 0; k < R; ++k)
 	{
-		auto F = Fourier<R>::derivative(k);
+		auto F = Fourier::derivative<R>(k);
 		auto psi_k = access(psi, [k] (mVector<double, R> &x) -> double&
 			{ return x[k]; });
 
-		transform(phi_f, K, fft.in, Fourier<R>::filter(F));
+		transform(phi_f, K, fft.in, Fourier::filter<R>(F));
 		fft.backward();
-		transform(fft.out, psi_k, real_part(size / L * N));
+		transform(fft.out, psi_k, Fourier::real_part(size / L * N));
 	}
 	return psi;
 }

@@ -10,19 +10,15 @@
 #include <sstream>
 #include <complex>
 
+#include "ptr.hh"
+#include "maybe.hh"
+
 namespace System
 {
 	// types and pointers {{{1
 	typedef std::complex<double> complex64;
 
-	template <typename T>
-	using ptr = std::shared_ptr<T>;
-
 	typedef std::string Exception;
-
-	template <typename T, typename ...Args>
-	ptr<T> make_ptr(Args &&...args)
-	{ return std::make_shared<T>(std::forward<Args>(args)...); }
 
 	typedef std::function<void (int, char **)> Command;
 	// }}}1

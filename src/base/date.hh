@@ -8,6 +8,6 @@ namespace System
 	extern std::string seconds_since_epoch_string();
 
 	extern std::string 
-		timed_filename(std::string const &id, std::string const &stage, float b);
+		timed_filename(std::string const &id, std::string const &stage, float b, std::string const &ext=".conan");
 }
 
