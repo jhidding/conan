@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../base/system.hh"
+#include <iostream>
+#include <iomanip>
 #include <functional>
 
 namespace Conan
@@ -45,6 +47,32 @@ namespace Conan
 		for (unsigned i = 0; i < R; ++i) 
 			y[i] = static_cast<int>(x[i] < 0 ? x[i] : x[i] + 1.0);
 		return y;
+	}
+
+	template <typename T, unsigned R>
+	void write_matrix_array_txt(std::ostream &fo, BoxPtr<R> box, Array<T> data)
+	{
+		for (size_t i = 0; i < box->size(); ++i)
+		{
+			fo << std::setw(5) << data[i] << " ";
+			
+			for (unsigned k = 0; k < R-1; ++k)
+			{
+				if (box->I[i][k] == (box->shape()[k] - 1))
+				{	
+					fo << std::endl;
+				}
+			}
+		}
+	}
+
+	template <typename T, unsigned R>
+	void write_list_array_txt(std::ostream &fo, BoxPtr<R> box, Array<T> data)
+	{
+		for (size_t i = 0; i < box->size(); ++i)
+		{
+			fo << std::setw(5) << box->G[i] << " " << data[i] << "\n";
+		}
 	}
 }
 

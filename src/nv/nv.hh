@@ -1,9 +1,13 @@
 #pragma once
 #include <queue>
 #include <fstream>
+#include "../base/progress.hh"
 #include "system.hh"
 #include "minimizor.hh"
 #include "spline.hh"
+#include <iomanip>
+
+#include "../base/unittest.hh"
 
 namespace Conan
 {
@@ -52,7 +56,7 @@ namespace Conan
 				if (x[sdim] - min[sdim] <= 1)
 				{
 					iVector<R> nx = x, nmin = min;
-					nx[sdim] = (x[sdim] + max[sdim])/2;
+					nx[sdim] += 1; // (x[sdim] + max[sdim])/2;
 					nmin[sdim] = x[sdim];
 
 					return pair(Just<FLT_iter_pars>(nx, nmin, max), Nothing);
@@ -61,7 +65,7 @@ namespace Conan
 				if (max[sdim] - x[sdim] <= 1) // shouldn't happen, just in case
 				{
 					iVector<R> nx = x, nmax = max;
-					nx[sdim] = (x[sdim] + min[sdim])/2;
+					nx[sdim] -= 1; // (x[sdim] + min[sdim])/2;
 					nmax[sdim] = x[sdim];
 
 					return pair(Just<FLT_iter_pars>(nx, min, nmax), Nothing);
@@ -110,6 +114,71 @@ namespace Conan
 			}
 	};
 
+	#ifdef UNITTEST
+
+	Test::Unit _TESTFLT0("FLT0", 
+		"Test the FLT iteration scheme, starting with ones, then adding the"
+		" integers at the limiting positions.",
+		[] ()
+	{
+		int N = 16;
+		auto B = make_ptr<System::Box<2>>(N, N);
+
+		Array<int> c(N*N);
+		Array<int> u(N*N);
+		std::fill(c.begin(), c.end(), 1);
+
+		typedef FLT_iter_pars<2> Fip;
+		std::vector<std::queue<ptr<Fip>>> search_queue(2);
+		search_queue[0].push(make_ptr<Fip>(iVector<2>(0), iVector<2>(-N/2), iVector<2>(N/2)));
+
+		int cnt = 0;
+		int dim = 0;
+
+		auto search_fip = [&] (ptr<Fip> f)
+		{
+			iVector<2> a = f->x, b = f->x;
+			a[dim] = f->min[dim];
+			b[dim] = f->max[dim];
+
+			c[B->idx(f->x)] = c[B->idx(a)] + c[B->idx(b)];
+			u[B->idx(f->x)] = cnt;
+			cnt++;
+		};
+
+		while (dim >= 0)
+		{
+			auto front = search_queue[dim].front();
+			search_queue[dim].pop();
+			search_fip(front);
+
+			for (unsigned k = dim; k < 2; ++k)
+			{
+				auto S = front->split(k);
+				if (S.first)
+					search_queue[k].push(S.first);
+
+				if (S.second)
+					search_queue[k].push(S.second);
+
+				if (not search_queue[k].empty())
+					dim = k;
+			}
+
+			while (dim >= 0 and search_queue[dim].empty())
+				--dim;
+		}
+
+		write_matrix_array_txt(std::cerr, B, u);
+		std::cerr << "\n\n";
+		write_matrix_array_txt(std::cerr, B, c);
+		std::cerr << "\n\n";
+
+		return true;
+	});
+
+	#endif
+
 	template <unsigned R>
 	class Maximant
 	{
@@ -155,7 +224,7 @@ namespace Conan
 		double res = box->res();
 		iVector<R> a = floor_cast(lim.first / res),
 		           b = ceil_cast(lim.second / res),
-			   shape = b - a;
+			   shape = b - a + iVector<R>(1);
 
 		MdRange<R> search_range(shape);
 		auto func = map(search_range, [&] (iVector<R> const &qi)
@@ -175,7 +244,7 @@ namespace Conan
 		minimize.set(q);
 
 		unsigned i = 0;
-		while (minimize.should_continue() and i < 100)
+		while (minimize.should_continue() and i < 20)
 		{
 			minimize.iterate();
 			++i;
@@ -201,8 +270,10 @@ namespace Conan
 		Array<double>	  phi(E->size());	// potential
 		
 		int N = E->N();
+		int cnt = 0;
 
-		// first make some borders
+		Misc::ProgressBar pb(E->size(), "Fast Legendre Transform");
+		// perform search for a single stage
 		auto search_fip = [&] (ptr<Fip> f)
 		{
 			size_t i = E->idx(f->x);
@@ -213,6 +284,11 @@ namespace Conan
 
 			phi[i] = (z.first + (x.dot(x))/2) / D;
 			psi[i] = z.second - x;
+
+			//if (psi[i].norm() > E->L()/2)
+			//	std::cerr << cnt << ": " << x << " [" << limits.first << " .. " << limits.second << "] " << z.second << std::endl;
+			//std::cerr << cnt << " ";
+			pb.tic();
 		};
 
 		// 0-th element
@@ -243,48 +319,23 @@ namespace Conan
 				--dim;
 		}
 
+		pb.finish();
 		return std::make_pair(phi, psi);
 	}
 
 
-	template <typename T, unsigned R>
-	void write_matrix_array_txt(std::ostream &fo, BoxPtr<R> box, Array<T> data)
-	{
-		for (size_t i = 0; i < box->size(); ++i)
-		{
-			fo << data[i] << " ";
-			
-			for (unsigned k = 0; k < R-1; ++k)
-			{
-				if (box->I[i][k] == (box->shape()[k] - 1))
-				{	
-					fo << std::endl;
-				}
-			}
-		}
-	}
-
-	template <typename T, unsigned R>
-	void write_list_array_txt(std::ostream &fo, BoxPtr<R> box, Array<T> data)
-	{
-		for (size_t i = 0; i < box->size(); ++i)
-		{
-			fo << box->G[i] << " " << data[i] << "\n";
-		}
-	}
 
 	template <unsigned R>
-	void nv_run(std::string const &id, BoxMaker L_, BoxMaker E_,
+	void nv_run(std::ostream &fo, BoxMaker L_, BoxMaker E_,
 		Array<double> phi, double D, FILE_FORMAT fmt, bool enhance)
 	{
 		auto E = E_.box<R>(), L = L_.box<R>();
 		auto result = flt<R>(L, E, phi, D, enhance);
 
-		std::ofstream fo;
 		switch (fmt)
 		{
 			case FMT_ASCII:
-				fo.open(System::timed_filename(id, "flt", D, ".txt"));
+				//fo.open(System::timed_filename(id, "flt", D, ".txt"));
 
 				fo << "# potential\n";
 				write_matrix_array_txt(fo, E, result.first);
@@ -292,16 +343,14 @@ namespace Conan
 				fo << "\n\n# eulerian map\n";	
 				write_list_array_txt(fo, E, result.second);
 
-				fo.close();
 				break;
 
 			case FMT_CONAN:
-				fo.open(System::timed_filename(id, "flt", D));
+				//fo.open(System::timed_filename(id, "flt", D));
 
 				System::save_to_file(fo, result.first, "potential");
 				System::save_to_file(fo, result.second, "eulerian_map");
 
-				fo.close();
 				break;
 		}
 	}
