@@ -349,7 +349,7 @@ namespace Conan
 				//fo.open(System::timed_filename(id, "flt", D));
 
 				System::save_to_file(fo, result.first, "potential");
-				System::save_to_file(fo, result.second, "eulerian_map");
+				System::save_to_file(fo, result.second, "eulerian-map");
 
 				break;
 		}

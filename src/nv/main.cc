@@ -71,6 +71,7 @@ void cmd_nv(int argc, char **argv)
 	{
 		case FMT_CONAN:
 			fo.open(System::timed_filename(H["id"], "flt", D));
+			H["N"] = System::to_string(N*f);
 			H.to_file(fo);
 			I.to_file(fo);
 			break;

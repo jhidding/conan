@@ -13,17 +13,17 @@ namespace Conan {
 		Array<double> rho(box->size());
 		for (size_t i = 0; i < box->size(); ++i)
 		{
-			iVector<R> x = box->G[i];
+			iVector<R> x = box->I[i];
 			bool parity = (x.sum() % 2 == 0);
 
-			Array<dVector<R>> d(2 << R);
-			for (unsigned j = 0; j < (2 << R); ++j)
+			Array<dVector<R>> d(1 << R);
+			for (unsigned j = 0; j < (1 << R); ++j)
 			{
 				iVector<R> y = x + box->block[j];
-				d[j] = psi[box->idx(y)];
+				d[j] = y * box->res() + psi[box->idx(y)];
 			}
 
-			rho[i] = 1./Decomposition<R>(parity, d).total_volume();
+			rho[i] = Decomposition<R>(parity, d).total_volume();
 		}
 
 		switch (fmt)
