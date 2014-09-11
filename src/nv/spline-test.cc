@@ -2,6 +2,8 @@
 
 #include "../base/unittest.hh"
 #include "spline.hh"
+#include "system.hh"
+#include "minimizor.hh"
 #include "../base/misc.hh"
 #include <iostream>
 #include <fstream>
@@ -9,7 +11,23 @@
 using namespace System;
 using namespace Conan;
 
-Test::Unit Spline_test("10-spline",
+inline std::function<dVector<2> ()> poisson_noise(unsigned long seed)
+{
+	std::shared_ptr<std::mt19937> 
+		random(new std::mt19937(seed));
+	std::shared_ptr<std::uniform_real_distribution<double>> 
+		dist(new std::uniform_real_distribution<double>(0.0, 1.0));
+
+	return [random, dist] () 
+	{
+		dVector<2> a;
+		for (double &x : a)
+			x = (*dist)(*random);
+		return a;
+	};
+}
+
+Test::Unit Spline_test("SPL",
 	"gives interpolated results in 1-d and 2-d cases, plot them "
 	"to see if results make sense.",
 	[] ()
@@ -64,12 +82,36 @@ Test::Unit Spline_test("10-spline",
 	for (unsigned i : Range<unsigned>(tgt_box_2->size()))
 	{
 		auto x = tgt_box_2->G[i];
-		fo << x << " " << S_2(x) << "\n";
+		auto y = S_2.fdf(x);
+
+		fo << x << " " << y.first << " " << y.second << "\n";
 		if (i % N == (N-1)) fo << "\n";
 	}
 	fo << "\n\n";
 	//===============================================
 	
+
+	// test minimisation ============================
+	fdfMinimizor<Spline<2>, 2> M(S_2);
+	auto point_noise = poisson_noise(0);
+
+	for (unsigned i : Range<unsigned>(50))
+	{
+		dVector<2> p = point_noise();
+		M.set(p, src_box_2->res()/5, 0.1);
+		fo << M.pos() << " " << "0" << std::endl;
+
+		unsigned j = 0;
+		while(j < 20 and M.should_continue())
+		{
+			M.iterate();
+			++j;
+
+			fo << M.pos() << " " << j << std::endl;
+		}
+
+		fo << std::endl;
+	}
 	fo.close();
 
 	return true;

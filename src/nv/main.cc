@@ -147,6 +147,12 @@ void cmd_sugar(int argc, char **argv)
 	FILE_FORMAT format = FMT_CONAN;
 	if (H.get<bool>("ascii")) format = FMT_ASCII;
 
+	if (format == FMT_CONAN)
+	{
+		H.to_file(fo);
+		I.to_file(fo);
+	}
+
 	switch (H.get<int>("dim"))
 	{
 	//	case 1: sg_run<1>(fi, fo, box, format); break;

@@ -132,8 +132,8 @@ namespace Conan
 		std::vector<std::queue<ptr<Fip>>> search_queue(2);
 		search_queue[0].push(make_ptr<Fip>(iVector<2>(0), iVector<2>(-N/2), iVector<2>(N/2)));
 
-		int cnt = 0;
 		int dim = 0;
+		int cnt = 0;
 
 		auto search_fip = [&] (ptr<Fip> f)
 		{
@@ -143,30 +143,52 @@ namespace Conan
 
 			c[B->idx(f->x)] = c[B->idx(a)] + c[B->idx(b)];
 			u[B->idx(f->x)] = cnt;
-			cnt++;
 		};
 
-		while (dim >= 0)
+		//while (dim >= 0)
+		#pragma omp parallel for shared (dim, cnt)
+		for (size_t i = 0; i < B->size(); ++i)
 		{
-			auto front = search_queue[dim].front();
-			search_queue[dim].pop();
-			search_fip(front);
+			ptr<Fip> front;
 
-			for (unsigned k = dim; k < 2; ++k)
+			#pragma omp critical (B)
 			{
-				auto S = front->split(k);
-				if (S.first)
-					search_queue[k].push(S.first);
+				while (search_queue[dim].empty())
+				{
+					#pragma omp taskwait
+				}
 
-				if (S.second)
-					search_queue[k].push(S.second);
+				std::cerr << i << " " <<  cnt << " " << dim << std::endl;
 
-				if (not search_queue[k].empty())
-					dim = k;
+				front = search_queue[dim].front();
+				++cnt;
+
+				#pragma omp critical (A)
+				{
+					search_queue[dim].pop();
+				}
 			}
 
-			while (dim >= 0 and search_queue[dim].empty())
-				--dim;
+			search_fip(front);
+
+			#pragma omp critical (A)
+			{
+				for (unsigned k = dim; k < 2; ++k)
+				{
+					auto S = front->split(k);
+					if (S.first)
+						search_queue[k].push(S.first);
+
+					if (S.second)
+						search_queue[k].push(S.second);
+
+					if (not search_queue[k].empty())
+						dim = k;
+				}
+
+				while (dim >= 0 and search_queue[dim].empty())
+					--dim;
+			}
 		}
 
 		write_matrix_array_txt(std::cerr, B, u);
@@ -198,22 +220,22 @@ namespace Conan
 				return v;
 			}
 
-			double f(dVector<R> const &q) const
+			double f(dVector<R> const &dq) const
 			{
-				return q.dot(q)/2 - D * phi.f(q) - q.dot(x);
+				return dq.sqr() - 2*D * phi.f(x + dq);
 			}
 
-			dVector<R> df(dVector<R> const &q) const
+			dVector<R> df(dVector<R> const &dq) const
 			{
-				return q - phi.df(q) * D - x;
+				return dq/2 - phi.df(x + dq) * 2*D;
 			}
 
-			std::pair<double, dVector<R>> fdf(dVector<R> const &q) const
+			std::pair<double, dVector<R>> fdf(dVector<R> const &dq) const
 			{
-				auto a = phi.fdf(q);
+				auto a = phi.fdf(x + dq);
 				return std::make_pair(
-					q.dot(q)/2 - a.first * D - q.dot(x),
-					q - a.second * D - x);
+					dq.sqr() - a.first * 2*D,
+					dq/2 - a.second * 2*D);
 			}
 	};
 
@@ -230,21 +252,21 @@ namespace Conan
 		auto func = map(search_range, [&] (iVector<R> const &qi)
 		{
 			dVector<R> q = dVector<R>(qi + a) * res;
-			return q.dot(q)/2 - D * phi[box->idx(qi + a)] - q.dot(x);
+			return (q-x).sqr() - 2*D * phi[box->idx(qi + a)];
 		});
 
 		auto intres = std::min_element(func.begin(), func.end());
 		dVector<R> q = dVector<R>(intres.arg() + a) * res;
 		
 		if (not enhance)
-			return std::make_pair(*intres, q);
+			return std::make_pair(*intres, q-x);
 
 		Maximant<R> M(box, phi, D, x);
-		Minimizor<Maximant<R>, R> minimize(M);
-		minimize.set(q);
+		fdfMinimizor<Maximant<R>, R> minimize(M);
+		minimize.set(q-x, box->res()/5, 0.1);
 
 		unsigned i = 0;
-		while (minimize.should_continue() and i < 20)
+		while (minimize.should_continue() and i < 100)
 		{
 			minimize.iterate();
 			++i;
@@ -283,12 +305,11 @@ namespace Conan
 			auto z = find_maximum(L, phi_0, D, x, limits, enhance);
 
 			phi[i] = (z.first + (x.dot(x))/2) / D;
-			psi[i] = z.second - x;
+			psi[i] = z.second;// - x;
 
 			//if (psi[i].norm() > E->L()/2)
 			//	std::cerr << cnt << ": " << x << " [" << limits.first << " .. " << limits.second << "] " << z.second << std::endl;
 			//std::cerr << cnt << " ";
-			pb.tic();
 		};
 
 		// 0-th element
@@ -296,27 +317,58 @@ namespace Conan
 		search_queue[0].push(make_ptr<Fip>(iVector<R>(0), iVector<R>(-N/2), iVector<R>(N/2)));
 
 		int dim = 0;
-		while (dim >= 0)
+		
+		for (size_t i = 0; i < E->size(); ++i)
 		{
-			auto front = search_queue[dim].front();
-			search_queue[dim].pop();
+			ptr<Fip> front;
+
+			/* reader loop, all shared variables inside
+			 * the critical B area are only read, with the
+			 * exception of the nested critical A statement,
+			 * which pops the needed element from the queue
+			 */
+			/*#pragma omp critical (B)
+			{
+				while (search_queue[dim].empty())
+				{
+					#pragma omp taskwait
+				}*/
+
+				front = search_queue[dim].front();
+
+				//#pragma omp critical (A)
+				//{
+					search_queue[dim].pop();
+				//}
+			//}
+
 			search_fip(front);
 
-			for (unsigned k = dim; k < R; ++k)
-			{
-				auto S = front->split(k);
-				if (S.first)
-					search_queue[k].push(S.first);
+			/* writer loop, critical A runs parallel with
+			 * the reader loop, so that whenever one computation
+			 * finishes, the reader loop gets an opportunity to
+			 * read an element from the queue
+			 *
+			#pragma omp critical (A)
+			{*/
+				for (unsigned k = dim; k < R; ++k)
+				{
+					auto S = front->split(k);
+					if (S.first)
+						search_queue[k].push(S.first);
 
-				if (S.second)
-					search_queue[k].push(S.second);
+					if (S.second)
+						search_queue[k].push(S.second);
 
-				if (not search_queue[k].empty())
-					dim = k;
-			}
+					if (not search_queue[k].empty())
+						dim = k;
+				}
 
-			while (dim >= 0 and search_queue[dim].empty())
-				--dim;
+				while (dim >= 0 and search_queue[dim].empty())
+					--dim;
+
+				pb.tic();
+			//}
 		}
 
 		pb.finish();

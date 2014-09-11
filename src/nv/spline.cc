@@ -174,7 +174,7 @@ double Spline<2>::f(dVector<2> const &x_) const
 	for (unsigned i = 0; i < 16; ++i)
 	{
 		iVector<R> e = loop[i];
-		s += c[i] * pow(P[0], e[0]) * pow(P[1], e[1]) * pow(P[2], e[2]);
+		s += c[i] * pow(P[0], e[0]) * pow(P[1], e[1]); // * pow(P[2], e[2]);
 	}
 
 	return s;

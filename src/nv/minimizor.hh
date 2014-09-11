@@ -83,7 +83,8 @@ namespace Conan
 				fn.n = rank;
 				fn.params = reinterpret_cast<void *>(&fctor);
 
-				const gsl_multimin_fdfminimizer_type *mint = gsl_multimin_fdfminimizer_vector_bfgs2;
+				const gsl_multimin_fdfminimizer_type *mint = gsl_multimin_fdfminimizer_steepest_descent;
+				//gsl_multimin_fdfminimizer_vector_bfgs2;
 
 				min = gsl_multimin_fdfminimizer_alloc(mint, rank);
 				x = gsl_vector_alloc(rank);
@@ -104,19 +105,20 @@ namespace Conan
 				fn.n = rank;
 				fn.params = reinterpret_cast<void *>(&fctor);
 
-				const gsl_multimin_fdfminimizer_type *mint = gsl_multimin_fdfminimizer_vector_bfgs2;
+				const gsl_multimin_fdfminimizer_type *mint = gsl_multimin_fdfminimizer_steepest_descent;
+				//gsl_multimin_fdfminimizer_vector_bfgs2;
 				min = gsl_multimin_fdfminimizer_alloc(mint, rank);
 				x = gsl_vector_alloc(rank);
 			}
 
-			void set(dVector<rank> const &Q)
+			void set(dVector<rank> const &Q, double step_size = 0.5, double prec = 0.1)
 			{
 				for (unsigned i = 0; i < rank; ++i)
 				{
 					gsl_vector_set(x, i, Q[i]);
 				}
 
-				gsl_multimin_fdfminimizer_set(min, &fn, x, 0.5, 0.1);
+				gsl_multimin_fdfminimizer_set(min, &fn, x, step_size, prec);
 			}
 
 			void iterate()
@@ -127,7 +129,7 @@ namespace Conan
 			bool should_continue()
 			{
 				return gsl_multimin_test_gradient(
-					min->gradient, 1e-4) != GSL_SUCCESS;
+					min->gradient, 1e-6) != GSL_SUCCESS;
 			}
 
 			dVector<rank> pos()
@@ -214,7 +216,7 @@ namespace Conan
 
 			bool should_continue()
 			{
-				return gsl_multimin_test_size(size(), 1e-4) == GSL_CONTINUE;
+				return gsl_multimin_test_size(size(), 1e-6) == GSL_CONTINUE;
 			}
 
 			~Minimizor()
