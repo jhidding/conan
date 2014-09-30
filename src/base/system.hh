@@ -16,5 +16,6 @@
 
 namespace System
 {
+	enum FILE_FORMAT { FMT_ASCII, FMT_IFRIT, FMT_CONAN };
 }
 

@@ -1,6 +1,7 @@
 #include "../base/system.hh"
 #include "../base/format.hh"
 
+#include "system.hh"
 #include "cosmology.hh"
 #include "leapfrog.hh"
 #include "nbody.hh"

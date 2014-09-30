@@ -7,8 +7,6 @@
 
 namespace Conan
 {
-	enum FILE_FORMAT { FMT_ASCII, FMT_IFRIT, FMT_CONAN };
-
 	using System::BoxMaker;
 
 	template <unsigned R>
@@ -172,6 +170,7 @@ namespace Conan
 				System::Header H; H["id"] = id;
 				H["N"] = Misc::format(mbox->N());
 				H["L"] = Misc::format(mbox->L());
+				H["dim"] = Misc::format(R);
 				H["a-mom"] = Misc::format(last_avel);
 				H["a-pos"] = Misc::format(last_apos);
 

@@ -7,6 +7,11 @@
 
 namespace Conan
 {
+	using System::FILE_FORMAT;
+	using System::FMT_ASCII;
+	using System::FMT_CONAN;
+	using System::FMT_IFRIT;
+
 	using System::Maybe;
 	using System::Just;
 	using System::Nothing;
@@ -25,8 +30,6 @@ namespace Conan
 	using System::make_ptr;
 	using System::BoxMaker;
 	using System::MdRange;
-
-	enum FILE_FORMAT { FMT_ASCII, FMT_IFRIT, FMT_CONAN };
 
 	template <unsigned R>
 	using Function = std::function<double (dVector<R> const &)>;
