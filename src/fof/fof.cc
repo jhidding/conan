@@ -30,9 +30,7 @@ void flood_fill(
 		T a = S.top();
 		S.pop();
 
-		auto U = neighbours(a);
-
-		for (auto b : U)
+		for (auto b : neighbours(a))
 			if (predicate(b))
 			{
 				pass(b);
@@ -59,6 +57,22 @@ class Collector: public kdTree::Visitor<size_t>
 		}
 };
 
+template <unsigned R>
+class PrintVector: public kdTree::Visitor<size_t>
+{
+	Array<dVector<R>> p;
+	size_t i;
+
+	public:
+		PrintVector(Array<dVector<R>> pos_, size_t i_):
+			p(pos_), i(i_) {}
+
+		virtual void operator()(size_t &j)
+		{
+			std::cout << p[i] << " " << p[j] - p[i] << " " << (p[i] - p[j]).norm() << std::endl;
+		}
+};
+
 inline double fmodulus(double a, double b)
 {
 	if (a < 0) return a - static_cast<int>(a / b - 1) * b;
@@ -75,29 +89,28 @@ class Proximity: public kdTree::Predicate<size_t, R>
 
 	public:
 		Proximity(BoxPtr<R> box_, Array<dVector<R>> pos_, dVector<R> a_, double r_):
-			box(box_), pos(pos_), a(a_), r(r_), rsqr(r*r) {}
+			box(box_), pos(pos_), a(a_), r(r_), rsqr(r_*r_) {}
 
 		virtual bool operator()(size_t const &i) const
 		{
-			dVector<R>	b = pos[i], d;
+			dVector<R>	b = pos[i] - a, d;
 			double L = box->L();
 
 			for (unsigned k = 0; k < R; ++k)
 			{
-				double z = b[k] - a[k];
-				if (z > L/2)
+				if (b[k] > L/2)
 				{
-					d[k] = z - L;
+					d[k] = b[k] - L;
 					continue;
 				}
 
-				if (z < -L/2)
+				if (b[k] < -L/2)
 				{
-					d[k] = z + L;
+					d[k] = b[k] + L;
 					continue;
 				}
 
-				d[k] = z;
+				d[k] = b[k];
 			}
 
 			return d.sqr() <= rsqr;
@@ -137,7 +150,7 @@ class Proximity: public kdTree::Predicate<size_t, R>
 inline int random_colour(size_t seed)
 {
 	srand(seed);
-	return rand() % 1024;
+	return rand() % 1022;
 }
 
 template <unsigned R>
@@ -165,11 +178,33 @@ void fof_run(BoxMaker const &box_, std::istream &fi, std::ostream &fo, double ll
 	{
 		pb.tic();
 
+		/*
+		if (tags[idx] == 0)
+		{
+			tags[idx] = current;
+			++current;
+		}
+
+		Proximity<R> P(box, pos, pos[idx], ll);
+		Collector C;
+		tree.traverse(C, P);
+
+		for (size_t j : C.yield())
+		{
+			if (tags[j] != tags[idx])
+				std::cerr << "!";
+			tags[j] = tags[idx];
+		}*/
+
 		if (tags[idx] != 0) continue;
 
 		flood_fill<size_t>(
 			// find neighbours
 			[&] (size_t j) {
+			/*	Proximity<R> P2(box, pos, pos[j], ll*2);
+				PrintVector<R> C2(pos, j);
+				tree.traverse(C2, P2); */
+
 				Proximity<R> P(box, pos, pos[j], ll);
 				Collector C;		 
 				tree.traverse(C, P);
@@ -178,7 +213,9 @@ void fof_run(BoxMaker const &box_, std::istream &fi, std::ostream &fo, double ll
 
 			// predicate, true if element needs attention
 			[&] (size_t j) -> bool {
-				return tags[j] == 0; // != current;
+				if (tags[j] != current and tags[j] != 0)
+					std::cerr << "!";
+				return tags[j] != current;
 			},
 
 			// paint action
@@ -188,7 +225,6 @@ void fof_run(BoxMaker const &box_, std::istream &fi, std::ostream &fo, double ll
 
 			// start
 			idx);
-
 		++current;
 	}
 	pb.finish();

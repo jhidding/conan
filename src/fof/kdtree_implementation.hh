@@ -39,8 +39,8 @@ BoundingBox<Point, R>::BoundingBox(Iter begin, Iter end,
 		X2[i] = index(*std::max_element(begin, end, compare_element<Point>(i, index)), i);
 	}
 
-	std::cout << X1 << "\n" << X1[0] << " " << X2[1] << "\n"
-	  << X2 << "\n" << X2[0] << " " << X1[1] << "\n" << X1 << "\n\n";
+//	std::cout << X1 << "\n" << X1[0] << " " << X2[1] << "\n"
+//	  << X2 << "\n" << X2[0] << " " << X1[1] << "\n" << X1 << "\n\n";
 }
 
 template <typename Point, unsigned R>
