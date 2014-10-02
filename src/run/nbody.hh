@@ -182,7 +182,7 @@ namespace Conan
 				System::save_to_file(fo, P, "mom");
 			}
 
-			virtual void save_snapshot(unsigned i) const
+			virtual void save_snapshot(unsigned i, double a) const
 			{
 				if ((i+1) % 10 == 0)
 				{
@@ -204,7 +204,7 @@ namespace Conan
 						case FMT_ASCII:
 							for (size_t i = 0; i < mbox->size(); ++i)
 							{
-								fo << X[i] << " " << P[i] << std::endl;
+								fo << X[i] << " " << P[i]/a << std::endl;
 							} break;
 						case FMT_IFRIT: 
 							save_ifrit(fo);

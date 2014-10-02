@@ -10,7 +10,7 @@ namespace Conan
 			virtual void kick(double a, double da) = 0;
 			virtual void drift(double a, double da) = 0;
 
-			virtual void save_snapshot(unsigned i) const
+			virtual void save_snapshot(unsigned i, double a) const
 			{}
 	};
 
@@ -41,7 +41,7 @@ namespace Conan
 					S->kick(a + da/2, da);
 					a += da;
 
-					S->save_snapshot(i);
+					S->save_snapshot(i, a);
 				}
 			}
 	};
